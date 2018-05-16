@@ -13,6 +13,12 @@ class Controller extends BaseController
     protected $status_not_found = 400;
     protected $status_error = 500;
 
+    public function __construct()
+    {
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Methods: GET, POST");
+    }
+
     public function getUserId()
     {
         // 获得用户ID

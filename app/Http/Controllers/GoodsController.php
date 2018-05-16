@@ -14,6 +14,23 @@ class GoodsController extends Controller
     // 商品列表.查询 ES
     public function index(Request $request)
     {
+        return ['status' => $this->status_success, 'info' => [
+            [
+                "mallPrice"=> 12,
+                "image"=> "http://baixing.kuaihejiu.com/compressedPic/20171205181048_5346.jpg",
+                "goodsId"=> "22fece1309b547069fedb8bfd4a9a855",
+                "price"=> 15,
+                "name"=> "越南火龙果（大）1*2(约1000g)"
+            ],
+            [
+                "mallPrice"=> 24,
+                "image"=> "http://baixing.kuaihejiu.com/compressedPic/20171205184329_5939.jpg",
+                "goodsId"=> "27f616c8ec0346a6ae7a3667da2ac345",
+                "price"=> 45,
+                "name"=> "多宝鱼 1.5斤左右"
+            ]
+        ], 'total' => 20];
+
         $hosts = [
             Config::get('database.elasticsearch.host') . ':' . Config::get('database.elasticsearch.port'),
         ];
