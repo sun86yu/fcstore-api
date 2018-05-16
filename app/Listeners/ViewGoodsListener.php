@@ -51,7 +51,7 @@ class ViewGoodsListener implements ShouldQueue
     public function handle(ViewGoodsEvent $event)
     {
         //
-        print_r('处理事件触发!' . $event->goodId);
+//        print_r('处理事件触发!' . $event->goodId);
         $item = new HistoryModel();
 
         $item->user_id = $event->userId;
