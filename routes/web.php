@@ -35,6 +35,7 @@ $api->version('v1', function ($api) {
 
     // 需要 token 验证才能成功的请求
     $api->group(['middleware' => 'auth:api'], function ($api) {
+        $api->get('refreshtoken', 'App\Http\Controllers\UserController@refresh');
         // 获得用户详情
         $api->get('userinfo', 'App\Http\Controllers\UserController@index');
         // 更新用户信息

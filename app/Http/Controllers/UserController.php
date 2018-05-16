@@ -35,6 +35,14 @@ class UserController extends Controller
         return ['status' => $this->status_success, 'token' => $token];
     }
 
+    public function refresh()
+    {
+        $old = $this->jwt->getToken();
+        $token = $this->jwt->refresh($old);
+
+        return ['status' => $this->status_success, 'token' => $token];
+    }
+
     public function index()
     {
         return ['status' => $this->status_success, 'info' => Auth::user()];
