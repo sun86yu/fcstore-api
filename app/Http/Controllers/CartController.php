@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CartModel;
+use Dingo\Api\Http\Request;
 
 class CartController extends Controller
 {
@@ -15,7 +16,7 @@ class CartController extends Controller
     {
         //
         $userId = $this->getUserId();
-        $lists = CartModel::where(['user_id' => $userId])->get();
+        $lists = \Db::table('t_cart as a')->join('t_product as b', 'a.pro_id', '=', 'b.id')->select('b.*', 'a.id as cart_id')->where(['a.user_id' => $userId])->get();
 
         return ['status' => $this->status_success, 'info' => $lists];
     }
@@ -32,27 +33,16 @@ class CartController extends Controller
 
         // 添加商品到收藏夹
         $proId = $request->input('pro_id', 0);
-
-        // 数据验证
-        $input = [
-            'pro_id' => $proId,
+        $where = [
+            'user_id' => $userId,
+            'pro_id' => $proId
         ];
-        $rules = [
-            'pro_id' => 'required|max:10',
-        ];
-        $messages = [
-            'required' => ':attribute 值必须填写.',
-            'max' => ':attribute 长度不能超过 :max.',
-        ];
-
-        $validator = Validator::make($input, $rules, $messages);
-
-        if ($validator->fails()) {
-            return ['status' => $this->status_error, 'info' => $validator->errors()->first()];
+        $info = \Db::table('t_cart')->where($where)->first();
+        if ($info){
+            return ['status' => $this->status_error, 'info' => '已添加此宝贝!'];
         }
 
-        $item = new FavoriteModel();
-
+        $item = new CartModel();
         $item->user_id = $userId;
         $item->pro_id = $proId;
         $item->add_time = date('Y-m-d H:i:s');
@@ -68,15 +58,16 @@ class CartController extends Controller
      * @param  int $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(Request $request)
     {
+        $id = $request->input('id', 0);
         //
         $userId = $this->getUserId();
 
         if ($id != 0) {
-            FavoriteModel::destroy($id);
+            CartModel::destroy($id);
         } else {
-            FavoriteModel::where('user_id', $userId)->delete();
+            CartModel::where('user_id', $userId)->delete();
         }
 
         return ['status' => $this->status_success, 'info' => '商品从购物车删除成功!'];

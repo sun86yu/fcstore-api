@@ -14,22 +14,15 @@ class GoodsController extends Controller
     // 商品列表.查询 ES
     public function index(Request $request)
     {
-        return ['status' => $this->status_success, 'info' => [
-            [
-                "mallPrice"=> 12,
-                "image"=> "http://baixing.kuaihejiu.com/compressedPic/20171205181048_5346.jpg",
-                "goodsId"=> "22fece1309b547069fedb8bfd4a9a855",
-                "price"=> 15,
-                "name"=> "越南火龙果（大）1*2(约1000g)"
-            ],
-            [
-                "mallPrice"=> 24,
-                "image"=> "http://baixing.kuaihejiu.com/compressedPic/20171205184329_5939.jpg",
-                "goodsId"=> "27f616c8ec0346a6ae7a3667da2ac345",
-                "price"=> 45,
-                "name"=> "多宝鱼 1.5斤左右"
-            ]
-        ], 'total' => 20];
+
+        $cat_id = $request->input('cat_id', 0);
+        $where = '';
+        if ($cat_id > 0){
+            $where .= ' and cat_id = ' . $cat_id;
+        }
+        $goods = DB::table('t_product')->whereRaw('1 = 1'.$where)->orderBy('id', 'desc')->paginate(20);
+
+        return ['status' => $this->status_success, 'info' => $goods->toArray()['data']];
 
         $hosts = [
             Config::get('database.elasticsearch.host') . ':' . Config::get('database.elasticsearch.port'),
@@ -123,8 +116,25 @@ class GoodsController extends Controller
 
         if ($userId > 0) {
             event(new ViewGoodsEvent($userId, $id));
+            $cartCount = DB::table('t_cart')->where('user_id', $userId)->count();
+            $favCount = DB::table('t_favorite')->where(['user_id'=> $userId, 'pro_id' => $id])->count();
         }
 
-        return ['status' => $this->status_success, 'info' => $info];
+        return ['status' => $this->status_success, 'info' => $info, 'cart' => $cartCount ?? 0, 'fav' => $favCount ?? 0];
+    }
+
+    public function goodsDetail(Request $request){
+
+        $buyParams = $request->input('buyParams', []);
+        $userId = $this->getUserId();
+
+        //商品详情
+        $goods = DB::table('t_product')->find($buyParams['gid']);
+
+        //默认收货地址
+        $address = DB::table('t_address')->where(['user_id'=> $userId, 'is_default' => 1])->first();
+
+        return ['status' => $this->status_success, 'goods' => $goods, 'address' => $address];
+
     }
 }

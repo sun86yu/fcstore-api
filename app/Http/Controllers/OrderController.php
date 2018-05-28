@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Dingo\Api\Http\Request;
 use App\Models\OrdersModel;
 use App\Models\ProductModel;
 
@@ -12,11 +13,16 @@ class OrderController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $status = $request->input('status', 0);
         $userId = $this->getUserId();
-        $lists = OrdersModel::where(['user_id' => $userId])->get();
+
+        $where = ['user_id' => $userId];
+        if ($status > 0){
+            $where['status'] = $status;
+        }
+        $lists = OrdersModel::where($where)->with(['product'])->get();
 
         return ['status' => $this->status_success, 'info' => $lists];
     }
@@ -26,10 +32,61 @@ class OrderController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create(Request $request)
     {
         //
         // 下单的商品列表及个数
+        $userId = $this->getUserId();
+
+        $goods_id = $request->input('gid', 0);
+        $address_id = $request->input('address', 0);
+        $buyNums = $request->input('buyNums', 1);
+        $message = $request->input('message', '');
+
+        if (!$goods_id || !$address_id){
+            return ['status' => $this->status_error, 'info' => '系统错误请重试'];
+        }
+
+        $goodsInfo = \Db::table('t_product')->find($goods_id);
+        if ($buyNums > $goodsInfo->remain_cnt){
+            return ['status' => $this->status_error, 'info' => '库存不足'];
+        }
+
+        $orderData = [
+            'user_id' => $userId,
+            'create_time' => date('Y-m-d H:i:s'),
+            'status' => 1,
+            'real_address_id' => 1,
+            'pay_money' => $goodsInfo->price * $buyNums,
+            'order_code' => $userId . $this->getOrderCode()
+        ];
+        $orderProData = [
+            'pro_id' => $goodsInfo->id,
+            'pro_name' => $goodsInfo->pro_name,
+            'cat_id' => $goodsInfo->cat_id,
+            'info' => $goodsInfo->info,
+            'price' => $goodsInfo->price,
+            'pro_img' => $goodsInfo->pro_img,
+            'buy_num' => $buyNums
+        ];
+        $params = [
+            'id' => $goods_id,
+            'remain_cnt' => $goodsInfo->remain_cnt
+        ];
+
+        \Db::transaction(function () use ($params, $orderData, $orderProData) {
+            $where = [
+                'id' => $params['id'],
+                'remain_cnt' => $params['remain_cnt']
+            ];
+            //减库存
+            \Db::table('t_product')->where($where)->update(['remain_cnt' => $params['remain_cnt']- 1]);
+            $order_id = \Db::table('t_orders')->insertGetId($orderData);
+            $orderProData['order_id'] = $order_id;
+            \Db::table('t_order_product')->insert($orderProData);
+        });
+
+        return ['status' => $this->status_success, 'info' => $orderData['order_code']];
     }
 
     /**
@@ -38,40 +95,14 @@ class OrderController extends Controller
      * @param  int $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(Request $request)
     {
+        $code = $request->input('code');
         //
-        $order = OrdersModel::find($id);
-        // 商品详情
-        $goodsListStr = $order['pro_info'];
-
-        $goodsList = json_decode($goodsListStr);
-
-        $goodsArr = [];
-        $price = 0;
-        foreach ($goodsList as $goodId => $loopGood) {
-            array_push($goodsArr, $goodId);
-        }
-
-        $goodsInfoList = ProductModel::select('pro_name as name', 'pro_img as images', 'info')->find($goodsArr);
-
-        $result = [];
-        foreach ($goodsList as $goodId => $loopGood) {
-            foreach ($goodsInfoList as $loopInfo) {
-                if ($loopInfo['id'] == $goodId) {
-                    $result['goods'][$goodId]['count'] = $loopGood['cnt'];
-                    $result['goods'][$goodId]['price'] = $loopGood['price'];
-//                    $result['goods'][$goodId]['info'] = $loopInfo;
-
-                    // TODO:模块、常量等对应及设置
-
-                    $price += $result[$goodId]['count'] * $result[$goodId]['price'];
-
-                    break;
-                }
-            }
-        }
-        $result['price'] = $price;
+        $where = [
+            'order_code' => $code
+        ];
+        $result = OrdersModel::where($where)->with(['product'])->first();
 
         return ['status' => $this->status_success, 'info' => $result];
     }
@@ -90,5 +121,9 @@ class OrderController extends Controller
             ->update(['status' => OrdersModel::$ST_CANCLED]);
 
         return ['status' => $this->status_success, 'info' => '取消订单成功!'];
+    }
+
+    function getOrderCode(){
+        return date('Ymd').substr(implode(NULL, array_map('ord', str_split(substr(uniqid(), 7, 13), 1))), 0, 8);
     }
 }

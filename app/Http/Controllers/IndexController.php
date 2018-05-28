@@ -43,8 +43,33 @@ class IndexController extends Controller
     {
         $topId = $request->get('top', 0);
 
-        $lists = CategoryModel::getChild($topId);
-        
-        return ['status' => $this->status_success, 'info' => $lists];
+        if ($topId > 0){
+            if ($topId == 9999){
+                $lists = CategoryModel::getCategoryTj();
+            }else{
+                $lists = CategoryModel::getChild($topId);
+            }
+            $listTjs = [];
+        }else{
+            $lists = CategoryModel::getCategory();
+            $listTjs = CategoryModel::getCategoryTj();
+        }
+
+        return ['status' => $this->status_success, 'info' => $lists, 'tj' => $listTjs];
+    }
+    // 获得分类列表
+    public function categoryBySub(Request $request)
+    {
+        $topId = $request->get('cat_id', 0);
+
+        if ($topId > 0){
+            $lists = CategoryModel::getChildBySub($topId);
+            $listTjs = [];
+        }else{
+            $lists = CategoryModel::getCategory();
+            $listTjs = CategoryModel::getCategoryTj();
+        }
+
+        return ['status' => $this->status_success, 'info' => $lists, 'tj' => $listTjs];
     }
 }

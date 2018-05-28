@@ -16,4 +16,8 @@ class OrdersModel extends Model
     public static $ST_SENDED = 2;
     public static $ST_RECEIVED = 3;
     public static $ST_CANCLED = 4;
+
+    function product(){
+        return $this->hasMany(OrderProductModel::class, 'order_id', 'id');
+    }
 }

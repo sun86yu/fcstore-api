@@ -17,9 +17,10 @@ class FavoriteController extends Controller
     {
         //
         $userId = $this->getUserId();
-        $lists = FavoriteModel::where(['user_id' => $userId])->get();
+        $lists = \Db::table('t_favorite as a')->join('t_product as b', 'a.pro_id', '=', 'b.id')->select('b.*')->where(['a.user_id' => $userId])->paginate(15);
+        $lists = $lists->toArray();
 
-        return ['status' => $this->status_success, 'info' => $lists];
+        return ['status' => $this->status_success, 'info' => $lists['data'], 'count' => $lists['total']];
     }
 
     /**
@@ -71,13 +72,13 @@ class FavoriteController extends Controller
      * @param  int $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(Request $request)
     {
-        //
+        $id = $request->input('id', 0);
         $userId = $this->getUserId();
 
         if ($id != 0) {
-            FavoriteModel::destroy($id);
+            FavoriteModel::where(['pro_id'=> $id, 'user_id'=> $userId])->delete();
         } else {
             FavoriteModel::where('user_id', $userId)->delete();
         }

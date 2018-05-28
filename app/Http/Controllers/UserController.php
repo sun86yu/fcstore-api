@@ -19,6 +19,7 @@ class UserController extends Controller
      */
     public function __construct(JWTAuth $jwt)
     {
+        parent::__construct();
         //
         $this->jwt = $jwt;
     }

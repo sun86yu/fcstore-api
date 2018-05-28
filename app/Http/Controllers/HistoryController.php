@@ -3,21 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\HistoryModel;
+use Dingo\Api\Http\Request;
 
-class History extends Controller
+class HistoryController extends Controller
 {
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         //
         $userId = $this->getUserId();
-        $lists = HistoryModel::where(['user_id' => $userId])->get();
+        $lists = HistoryModel::where(['user_id' => $userId])->paginate(15);
+        $lists = $lists->toArray();
 
-        return ['status' => $this->status_success, 'info' => $lists];
+        return ['status' => $this->status_success, 'info' => $lists['data'], 'count' => $lists['total']];
     }
 
 
